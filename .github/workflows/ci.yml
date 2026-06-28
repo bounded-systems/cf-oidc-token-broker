@@ -1,0 +1,21 @@
+name: ci
+
+# Unit tests for the trust boundary (loadConfig + verifyOIDC + deriveEdit + policyFor). No
+# network, no secrets — the verifier's JWKS/clock seams are mocked; tests mint their own keypair.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --test src/index.test.mjs

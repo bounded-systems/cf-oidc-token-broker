@@ -1,0 +1,15 @@
+{
+  "name": "cf-oidc-token-broker",
+  "version": "0.1.0",
+  "description": "GitHub Actions OIDC → short-lived, scoped Cloudflare API tokens (a Cloudflare Worker). No stored Cloudflare secret in GitHub.",
+  "type": "module",
+  "license": "MIT",
+  "main": "src/index.mjs",
+  "scripts": {
+    "test": "node --test src/index.test.mjs"
+  },
+  "keywords": ["cloudflare", "oidc", "github-actions", "workers", "credentials", "capability-security"],
+  "engines": {
+    "node": ">=22"
+  }
+}

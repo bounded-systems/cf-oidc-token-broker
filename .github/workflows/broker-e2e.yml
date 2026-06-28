@@ -1,0 +1,61 @@
+name: broker-e2e
+
+# Live OIDC end-to-end check against a DEPLOYED cf-oidc-token-broker (the rejection + liveness
+# paths). Manual dispatch. Dormant until the CF_BROKER_URL repo var is set: if unset it exits
+# green with a notice. When set, it exercises the broker against GitHub's REAL OIDC + JWKS:
+#   - GET            -> 405  (worker is up and routing — liveness)
+#   - tampered sig   -> 401  (live RS256 verify rejects a mangled signature)
+#   - wrong audience -> 401  (claim pin rejects a validly-signed but wrong-aud token)
+#
+# The positive valid->mint path is intentionally NOT tested here: this workflow is deliberately
+# absent from the broker's READ_WORKFLOW_REF/EDIT_WORKFLOW_REF allowlist, so its token cannot mint
+# — keeping the trust boundary minimal. Prove valid->mint with your real consumer workflow.
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Live OIDC rejection + liveness checks
+        env:
+          CF_BROKER_URL: ${{ vars.CF_BROKER_URL }}
+          AUDIENCE: ${{ vars.GH_AUDIENCE || 'cf-oidc-token-broker' }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CF_BROKER_URL:-}" ]; then
+            echo "::notice::CF_BROKER_URL not set — broker not deployed yet; skipping live e2e."
+            exit 0
+          fi
+
+          oidc_for() {
+            curl -sf "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=$1" \
+              -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" | jq -r .value
+          }
+          post_status() {
+            curl -s -o /dev/null -w '%{http_code}' -X POST "$CF_BROKER_URL" -H "Authorization: Bearer $1"
+          }
+          expect() { # expect <label> <got> <want>
+            if [ "$2" = "$3" ]; then echo "✓ $1 → $2"; else echo "::error::$1 expected $3, got $2"; exit 1; fi
+          }
+
+          # 1) Liveness — GET is rejected by the handler with 405.
+          expect "GET (liveness)" "$(curl -s -o /dev/null -w '%{http_code}' "$CF_BROKER_URL")" "405"
+
+          # 2) Tampered signature -> 401. Real, valid-aud token with its signature mangled.
+          valid="$(oidc_for "$AUDIENCE")"; echo "::add-mask::$valid"
+          sig="${valid##*.}"; head="${valid%.*}"
+          if [ "${sig: -2}" = "AA" ]; then tampered="${head}.${sig:0:${#sig}-2}BB"; else tampered="${head}.${sig:0:${#sig}-2}AA"; fi
+          echo "::add-mask::$tampered"
+          expect "tampered signature" "$(post_status "$tampered")" "401"
+
+          # 3) Wrong audience -> 401. Validly-signed token whose aud is not ours.
+          wrongaud="$(oidc_for "${AUDIENCE}-WRONG")"; echo "::add-mask::$wrongaud"
+          expect "wrong audience" "$(post_status "$wrongaud")" "401"
+
+          echo "✅ broker live e2e: liveness + tampered + wrong-aud all behaved correctly."

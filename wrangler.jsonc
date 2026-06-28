@@ -1,0 +1,45 @@
+{
+  // cf-oidc-token-broker Worker. Deploy: `npx wrangler deploy` (from the repo root).
+  //
+  // Secret (set with `wrangler secret put`, NEVER in this file or git):
+  //   CF_BROKER_TOKEN — a Cloudflare API token with "API Tokens: Edit" plus the scopes you want
+  //                     to be able to delegate. This is the only powerful credential; it lives
+  //                     here as a Worker Secret, behind the OIDC check. NOTE: "API Tokens: Edit"
+  //                     can mint tokens up to the account owner's full scope — treat a leak as a
+  //                     full-account incident (see SECURITY.md R4).
+  //
+  // Vars below are non-secret config. Replace every <PLACEHOLDER>. Trust pins (GH_*) decide WHO
+  // may mint; the policy vars (CF_*) decide WHAT gets minted. `loadConfig`/`policyFor` fail closed
+  // if a required var is empty — no token is ever minted with a missing pin or scope.
+  "name": "cf-oidc-token-broker",
+  "main": "src/index.mjs",
+  "compatibility_date": "2026-06-21",
+  "workers_dev": true,
+  // Don't leave old versions of a credential broker publicly reachable at preview URLs.
+  "preview_urls": false,
+  "vars": {
+    // --- trust pins: who may obtain a token ---
+    "GH_AUDIENCE": "cf-oidc-token-broker",                 // the OIDC `aud` the workflow requests
+    "GH_OWNER": "<your-org-or-user>",                      // repository_owner claim
+    "GH_REPOSITORY": "<owner>/<repo>",                     // repository claim
+    "READ_WORKFLOW_REF": "<owner>/<repo>/.github/workflows/<read>.yml@refs/heads/main",
+    // Optional high-privilege tier. Leave both empty for a read-only broker. Edit is granted ONLY
+    // to this workflow AND only when the job entered the named protected Environment (reviewer-gated).
+    "EDIT_WORKFLOW_REF": "",
+    "EDIT_ENVIRONMENT": "",
+
+    // --- token policy: what gets minted (this example mints DNS-as-code tokens) ---
+    "CF_ACCOUNT_ID": "<cloudflare-account-id>",
+    "CF_ZONE_IDS": "<zone-id-1>,<zone-id-2>",              // comma-separated; tokens pin to these
+    // Permission-group ids are GLOBAL Cloudflare constants (same for every account) — these
+    // defaults are the real "DNS Read / DNS Write / Zone Read / Workers Routes Read / Workers
+    // Scripts Read" ids. Verify with: GET /user/tokens/permission_groups
+    "CF_PG_ZONE_READ": "c8fed203ed3043cba015a93ad1616f1f",
+    "CF_PG_DNS_READ": "82e64a83756745bbbb1c9c2701bf816b",
+    "CF_PG_DNS_EDIT": "4755a26eedb94da69e1066d98aa820be",
+    "CF_PG_WORKERS_ROUTES_READ": "2072033d694d415a936eaeb94e6405b8",
+    "CF_PG_WORKERS_SCRIPTS_READ": "1a71c399035b4950a1bd1466bbe4f420"
+  }
+  // Recommended before relying on it: add a Cloudflare rate-limit rule on this route
+  // (the endpoint is public; security rests on JWT validation — see SECURITY.md R2).
+}
