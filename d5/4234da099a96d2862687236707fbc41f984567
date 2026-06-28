@@ -1,0 +1,37 @@
+LICENSE
+  s_4ccf8ec3ddcbc8::t_834f7055df4516 1-21
+.github/workflows/broker-e2e.yml
+  s_4ccf8ec3ddcbc8::t_c7786a43960495 1-61
+.gitignore
+  s_4ccf8ec3ddcbc8::t_65ee5373922a21 1-5
+package.json
+  s_4ccf8ec3ddcbc8::t_023a217845a92c 1-15
+SECURITY.md
+  s_4ccf8ec3ddcbc8::t_73d4922e185b1c 1-64
+wrangler.jsonc
+  s_4ccf8ec3ddcbc8::t_2433ebb94e74d0 1-45
+src/index.mjs
+  s_4ccf8ec3ddcbc8::t_803a24740a1a8e 1-222
+src/index.test.mjs
+  s_4ccf8ec3ddcbc8::t_dc98507c4a72c7 1-268
+README.md
+  s_4ccf8ec3ddcbc8::t_c19b379e4f078a 1-112
+.github/workflows/ci.yml
+  s_4ccf8ec3ddcbc8::t_50c1c965a393a1 1-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "d54234da099a96d2862687236707fbc41f984567",
+  "prompts": {},
+  "sessions": {
+    "s_4ccf8ec3ddcbc8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "684a1b39-b25c-4f45-ac97-97af68184b7a",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Robert DeLanghe <1240090+bdelanghe@users.noreply.github.com>"
+    }
+  }
+}
