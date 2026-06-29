@@ -3,3 +3,5 @@ node_modules/
 .dev.vars
 *.log
 .DS_Store
+# local per-instance deploy configs (your zones/account; not part of the generic broker)
+wrangler.*-deploy.jsonc
