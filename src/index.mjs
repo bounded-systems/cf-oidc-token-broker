@@ -197,9 +197,9 @@ export default {
     }
 
     const now = Date.now();
-    let j;
+    let mint, text;
     try {
-      const mint = await fetch("https://api.cloudflare.com/client/v4/user/tokens", {
+      mint = await fetch("https://api.cloudflare.com/client/v4/user/tokens", {
         method: "POST",
         headers: { Authorization: `Bearer ${env.CF_BROKER_TOKEN}`, "content-type": "application/json" },
         body: JSON.stringify({
@@ -209,14 +209,22 @@ export default {
           expires_on: isoSeconds(now + TOKEN_TTL_MS),
         }),
       });
-      j = await mint.json();
+      text = await mint.text();
     } catch (e) {
-      // Network blip or non-JSON response from Cloudflare — fail closed, never leak.
-      console.error(`mint request failed: ${e.message}`);
+      // Network error reaching Cloudflare — fail closed, never leak.
+      console.error(`mint fetch failed: ${e.message}`);
+      return new Response("mint failed\n", { status: 502 });
+    }
+    let j;
+    try {
+      j = JSON.parse(text);
+    } catch {
+      // Cloudflare returned a non-JSON body — log the status + a snippet so misconfig is debuggable.
+      console.error(`mint non-JSON (HTTP ${mint.status}): ${text.slice(0, 200)}`);
       return new Response("mint failed\n", { status: 502 });
     }
     if (!j.success) {
-      console.warn(`mint failed: ${JSON.stringify(j.errors)}`);
+      console.warn(`mint failed (HTTP ${mint.status}): ${JSON.stringify(j.errors)}`);
       return new Response("mint failed\n", { status: 502 });
     }
 
