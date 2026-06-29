@@ -220,8 +220,6 @@ export default {
       j = JSON.parse(text);
     } catch {
       // Cloudflare returned a non-JSON body — log the status + a snippet so misconfig is debuggable.
-      // (A 400 with an empty body usually means a bad CF_BROKER_TOKEN — verify it's a real ~40-char
-      // Cloudflare API token, not a mis-paste.)
       console.error(`mint non-JSON (HTTP ${mint.status}): ${text.slice(0, 200)}`);
       return new Response("mint failed\n", { status: 502 });
     }
