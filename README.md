@@ -78,6 +78,13 @@ npx wrangler secret put CF_BROKER_TOKEN
 npx wrangler deploy
 ```
 
+Or use the helper, which deploys, prompts for the secret, and wires `CF_BROKER_URL` on the repo
+named in the config (bootstraps node via `nix` if `npx` isn't on PATH):
+
+```sh
+./deploy.sh wrangler.my-instance.jsonc
+```
+
 In your consumer workflow, request the OIDC token and POST it to the broker:
 
 ```yaml
