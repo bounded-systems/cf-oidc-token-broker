@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# wr — run wrangler without fuss: clears a stray read-only CLOUDFLARE_API_TOKEN (so wrangler uses
+# your login) and bootstraps node via `nix` if `npx` isn't already on PATH.
+#
+#   ./wr deploy -c wrangler.my-instance.jsonc
+#   ./wr secret put CF_BROKER_TOKEN --name my-worker
+#   ./wr tail my-worker
+set -euo pipefail
+unset CLOUDFLARE_API_TOKEN 2>/dev/null || true
+if command -v npx >/dev/null 2>&1; then
+  exec npx --yes wrangler "$@"
+elif command -v nix >/dev/null 2>&1; then
+  exec nix shell nixpkgs#nodejs --command npx --yes wrangler "$@"
+else
+  echo "✗ need node/npx (or nix) on PATH" >&2; exit 1
+fi
