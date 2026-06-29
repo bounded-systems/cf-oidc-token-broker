@@ -116,8 +116,10 @@ export function deriveEdit(claims, config) {
 // wildcard, no placeholder groups). Permission-group ids are global Cloudflare constants supplied
 // as Worker vars (GET /user/tokens/permission_groups).
 //
-//   read: Zone Read + DNS Read + Workers Routes Read on the pinned zones, plus Workers Scripts
-//         Read at the ACCOUNT scope (workers/scripts is an account endpoint, not a zone one).
+//   read: Zone Read + DNS Read on the pinned zones — PLUS, only if their permission-group vars
+//         are set, Workers Routes Read (zone) and Workers Scripts Read (ACCOUNT scope, since
+//         workers/scripts is an account endpoint). Omit those vars for a DNS-only (apply-only)
+//         deployment and the read token stays minimal.
 //   edit: Zone Read + DNS Read + DNS Edit on the pinned zones.
 export function policyFor(edit, env) {
   const zoneIds = (env.CF_ZONE_IDS || "").split(",").map((z) => z.trim()).filter(Boolean);
@@ -129,6 +131,7 @@ export function policyFor(edit, env) {
     if (!id) throw new Error(`${v} not configured`);
     return { id };
   };
+  const optGroup = (v) => (env[v] ? { id: env[v] } : null); // additive scope; omit the var to skip it
   const zoneResources = {};
   for (const z of zoneIds) zoneResources[`com.cloudflare.api.account.zone.${z}`] = "*";
 
@@ -139,18 +142,20 @@ export function policyFor(edit, env) {
       permission_groups: [group("CF_PG_ZONE_READ"), group("CF_PG_DNS_READ"), group("CF_PG_DNS_EDIT")],
     }];
   }
-  return [
-    {
-      effect: "allow",
-      resources: zoneResources,
-      permission_groups: [group("CF_PG_ZONE_READ"), group("CF_PG_DNS_READ"), group("CF_PG_WORKERS_ROUTES_READ")],
-    },
-    {
+  // read tier: Zone + DNS read always; Workers reads only when their vars are configured.
+  const zonePerms = [group("CF_PG_ZONE_READ"), group("CF_PG_DNS_READ")];
+  const routesRead = optGroup("CF_PG_WORKERS_ROUTES_READ");
+  if (routesRead) zonePerms.push(routesRead);
+  const policies = [{ effect: "allow", resources: zoneResources, permission_groups: zonePerms }];
+  const scriptsRead = optGroup("CF_PG_WORKERS_SCRIPTS_READ");
+  if (scriptsRead) {
+    policies.push({
       effect: "allow",
       resources: { [`com.cloudflare.api.account.${accountId}`]: "*" },
-      permission_groups: [group("CF_PG_WORKERS_SCRIPTS_READ")],
-    },
-  ];
+      permission_groups: [scriptsRead],
+    });
+  }
+  return policies;
 }
 
 // Cloudflare's token API requires second-precision ISO-8601 ("2005-12-30T01:02:03Z") and REJECTS

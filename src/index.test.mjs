@@ -240,6 +240,21 @@ test("policy: edit scope → Zone Read + DNS Read + DNS Edit on the zone, one po
   assert.deepEqual(ids(policies[0].permission_groups), ["pg-zone-read", "pg-dns-read", "pg-dns-edit"]);
 });
 
+test("policy: DNS-only read (no Workers vars) → 1 policy, Zone+DNS only, no account scope", () => {
+  const { CF_PG_WORKERS_ROUTES_READ, CF_PG_WORKERS_SCRIPTS_READ, ...dnsOnly } = POLICY_ENV;
+  const policies = policyFor(false, dnsOnly);
+  assert.equal(policies.length, 1);
+  assert.deepEqual(policies[0].resources, { "com.cloudflare.api.account.zone.zone-abc": "*" });
+  assert.deepEqual(ids(policies[0].permission_groups), ["pg-zone-read", "pg-dns-read"]);
+});
+
+test("policy: read with only Workers Routes set (no Scripts) → 1 zone policy incl. routes, no account policy", () => {
+  const { CF_PG_WORKERS_SCRIPTS_READ, ...noScripts } = POLICY_ENV;
+  const policies = policyFor(false, noScripts);
+  assert.equal(policies.length, 1);
+  assert.deepEqual(ids(policies[0].permission_groups), ["pg-zone-read", "pg-dns-read", "pg-wr-read"]);
+});
+
 test("policy: multiple zones → each zone-scoped policy pins every zone (comma-separated, trimmed)", () => {
   const [zonePolicy] = policyFor(false, { ...POLICY_ENV, CF_ZONE_IDS: "zone-abc, zone-def" });
   assert.deepEqual(zonePolicy.resources, {
