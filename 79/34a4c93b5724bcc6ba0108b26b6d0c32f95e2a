@@ -1,0 +1,23 @@
+src/index.mjs
+  s_4ccf8ec3ddcbc8::t_d6c081e0f4632d 119-122,134,145-152,155-158
+wrangler.jsonc
+  s_4ccf8ec3ddcbc8::t_0d8a896c68ad40 37-39
+src/index.test.mjs
+  s_4ccf8ec3ddcbc8::t_5aa4bc27d528e2 243-257
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "7934a4c93b5724bcc6ba0108b26b6d0c32f95e2a",
+  "prompts": {},
+  "sessions": {
+    "s_4ccf8ec3ddcbc8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "684a1b39-b25c-4f45-ac97-97af68184b7a",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Robert DeLanghe <1240090+bdelanghe@users.noreply.github.com>"
+    }
+  }
+}
