@@ -1,0 +1,42 @@
+{
+  // npm-bootstrap-vendor — a SIBLING of the broker in wrangler.jsonc, deployed separately.
+  //
+  // Separate on purpose: this Worker vends a LONG-LIVED npm token, while the broker mints
+  // short-lived Cloudflare ones. Different secret, different deployment, different blast radius —
+  // and the broker's "everything it emits expires in ten minutes" guarantee stays true.
+  //
+  // Deploy:  npx wrangler deploy --config wrangler.npm-bootstrap.jsonc
+  // Secret:  npx wrangler secret put NPM_BOOTSTRAP_TOKEN --config wrangler.npm-bootstrap.jsonc
+  //
+  // DELETE THIS WORKER when npm/cli#8544 closes (OIDC can create a package) or npm retires direct
+  // publish from 2FA-bypass tokens (~January 2027) — whichever comes first.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "npm-bootstrap-vendor",
+  "main": "src/npm-bootstrap.mjs",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": false,
+  "observability": { "enabled": true },
+
+  "vars": {
+    // The OIDC `aud` the bootstrap workflow requests. Distinct from the broker's audience so a
+    // token minted for one is not accepted by the other.
+    "GH_AUDIENCE": "npm-bootstrap-vendor",
+    "GH_OWNER": "<your-org-or-user>",
+
+    // Allow-list, comma-separated. Every new package bootstraps exactly once, so this list should
+    // SHRINK over time — remove a repo as soon as its package exists on npm and its trusted
+    // publisher is configured.
+    "GH_REPOSITORIES": "<owner>/<repo>,<owner>/<other-repo>",
+    "BOOTSTRAP_WORKFLOW_REFS": "<owner>/<repo>/.github/workflows/bootstrap-publish.yml@refs/heads/main",
+
+    // Required, not optional. The broker treats the environment claim as an upgrade (no
+    // environment => read tier); here there is no lesser tier, so a run that did not enter this
+    // reviewer-gated Environment gets nothing. GitHub signs the claim, so it cannot be forged.
+    "BOOTSTRAP_ENVIRONMENT": "npm-bootstrap"
+  }
+
+  // Secret (never in this file, never in GitHub):
+  //   NPM_BOOTSTRAP_TOKEN — an npm granular access token with publish scope, 2FA-bypass so CI can
+  //   use it unattended. Creating it requires interactive 2FA on npmjs.com: npm's August 2026
+  //   change stops 2FA-bypass tokens from performing account management, token creation included.
+}
