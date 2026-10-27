@@ -30,8 +30,9 @@ Action exports the token → uses it against the Cloudflare API for that run onl
   Cloudflare**, reachable only behind the broker's OIDC check.
 - Minted tokens are **per-run, scoped, and short-lived** (10 min) — a leak is bounded.
 - **Two tiers:** a low-privilege "read" workflow, and an optional "edit" workflow that only gets
-  the elevated token when its job entered a **reviewer-gated GitHub Environment** (a claim GitHub
-  signs — it can't be forged).
+  the elevated token when its job entered a configured **GitHub Environment** (a claim GitHub
+  signs — it can't be forged). That is a human approval only if the Environment has required
+  reviewers (see [SECURITY.md](./SECURITY.md) F1).
 
 ## How it works (the trust boundary)
 
@@ -43,7 +44,10 @@ Action exports the token → uses it against the Cloudflare API for that run onl
   `repository`, and `job_workflow_ref`. The workflow ref includes `@refs/heads/main`, so a token
   from any PR or branch is rejected.
 - **Environment-gated edit** — `deriveEdit` grants the elevated scope only when the edit workflow
-  presents the configured `environment` claim (i.e. it passed required-reviewer approval).
+  presents the configured `environment` claim, i.e. it passed that Environment's protection
+  rules. Required reviewers make that a per-run human approval; a branch policy alone makes it a
+  branch gate. Required reviewers on a private repo need GitHub Enterprise (Free/Pro/Team offer
+  them on public repos only).
 - **Fail-closed policy** — `policyFor` throws (→ 500, never a token) if any zone/scope var is
   missing. No wildcard, no placeholder scope.
 
@@ -58,7 +62,7 @@ shipped example mints **DNS-as-code** tokens (read = Zone/DNS/Workers reads; edi
 | `GH_AUDIENCE` | the OIDC `aud` your workflow requests |
 | `GH_OWNER` / `GH_REPOSITORY` | pinned `repository_owner` / `repository` |
 | `READ_WORKFLOW_REF` | the read workflow's `job_workflow_ref` (e.g. `owner/repo/.github/workflows/snapshot.yml@refs/heads/main`) |
-| `EDIT_WORKFLOW_REF` / `EDIT_ENVIRONMENT` | optional; the edit workflow + its reviewer-gated Environment. Leave empty for a read-only broker |
+| `EDIT_WORKFLOW_REF` / `EDIT_ENVIRONMENT` | optional; the edit workflow + its Environment (give it required reviewers if edit should need a person's approval). Leave empty for a read-only broker |
 | `CF_ACCOUNT_ID`, `CF_ZONE_IDS` | the account + comma-separated zone ids minted tokens are pinned to |
 | `CF_PG_*` | Cloudflare permission-group ids (global constants; see `wrangler.jsonc`) |
 

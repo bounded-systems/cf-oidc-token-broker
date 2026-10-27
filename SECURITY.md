@@ -6,11 +6,15 @@ on the broker.
 
 ## What the boundary enforces
 
-- **F1 — edit scope is gated on approval, not a filename.** The elevated "edit" token is granted
-  only when `job_workflow_ref == EDIT_WORKFLOW_REF` **and** the `environment` claim ==
-  `EDIT_ENVIRONMENT`. GitHub only sets `environment` after the job enters that protected
-  Environment (i.e. it passed required-reviewer approval). A dry-run of the edit workflow (which
-  doesn't enter the Environment) correctly gets read-only.
+- **F1 — edit scope is gated on the Environment, not a filename.** The elevated "edit" token is
+  granted only when `job_workflow_ref == EDIT_WORKFLOW_REF` **and** the `environment` claim ==
+  `EDIT_ENVIRONMENT`. GitHub sets `environment` when the job enters that Environment, which
+  means it passed *whatever protection rules the Environment has*. The claim is proof of a human
+  approval **only if** the Environment has required reviewers; with only a deployment-branch
+  policy it proves the job ran on an allowed branch, not that anyone approved the run. GitHub:
+  *"If you are on a GitHub Free, GitHub Pro, or GitHub Team plan, required reviewers are only
+  available for public repositories."* A private repo on those plans gets the branch gate only.
+  A dry-run of the edit workflow (which doesn't enter the Environment) correctly gets read-only.
 - **F2 — algorithm pinned.** Rejects any `alg != "RS256"` before verifying — defeats `none`/HS256
   algorithm confusion independent of the verify step. The public key is imported as RS256
   regardless of the JWK's own `alg`.
